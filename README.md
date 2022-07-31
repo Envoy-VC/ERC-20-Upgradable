@@ -1,3 +1,5 @@
+![Cover](assets/cover.png)
+
 Normally, when we deploy smart contracts on the blockchain, it is impossible to edit the code deployed. And it should be totally fine that way. The fact that it could not be deployed to replace the existing codes means that that particular contract can not be modified afterward. (this increase safety of people who interact with that contract)
 
 Immutability comes with the drawback that bugs will not be fixed, gas optimizations won’t be implemented, existing functionality will not be improved
