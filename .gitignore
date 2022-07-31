@@ -4,8 +4,9 @@ coverage
 coverage.json
 typechain
 typechain-types
+.openzeppelin
+.vscode
 
 #Hardhat files
 cache
 artifacts
-
