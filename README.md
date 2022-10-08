@@ -36,33 +36,38 @@ We must first comprehend what a delegate call is in order to grasp how it operat
 
 First, an external caller makes a function call to the proxy. Second, the proxy delegates the call to the delegate, where the function code is located. Third, the result is returned to the proxy, which forwards it to the caller. Because the `delegatecall` is used to delegate the call, the called function is executed in the context of the proxy. This means that the storage of the proxy is used for function execution, thus resulting in the limitation that the storage of the delegate contract has to be append only. The `delegatecall` opcode was introduced in [EIP-7](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7.md).
 
+
+<img src="https://dev-to-uploads.s3.amazonaws.com/uploads/articles/3fl7hdmh7f160kkpsq19.png" alt="Working of a Upgradable Contract" width="600px" />
+
 ---
 
 ## 📃 Let's start making a Upgradable ERC-20 Contract
 
 ### **Step 1: Set up Development Environment**
 
-Firstly initialize a npm project using
+Firstly initialize a npm project using the following command:
 
-```
+```bash
 npm init -y
 ```
 
-Install Hardhat
+Now we will Install Hardhat which will be used to deploy our smart contract to the Blockchain
 
-```
+```bash
 npm install --save-dev hardhat
 ```
 
-and then create a Hardhat project and install necessary dependencies
+and then let's create a Hardhat project and install necessary dependencies:
 
-```
+```bash
 npx hardhat
 ```
 
-```
+```bash
 npm install --save-dev @openzeppelin/contracts-upgradeable @nomiclabs/hardhat-ethers @openzeppelin/hardhat-upgrades dotenv
 ```
+
+Here we have installed the dependency `dotenv` which will be used to access secrets from the `.env` file.
 
 ---
 
@@ -75,7 +80,8 @@ URL = 'URL_HERE'
 PRIVATE_KEY = 'PRIVATE_KEY_HERE'
 ```
 
-You can get your RPC url from [Alchemy](https://dashboard.alchemyapi.io/).
+You can get your RPC URL from [Alchemy](https://dashboard.alchemyapi.io/).
+`PRIVATE_KEY` will be your Metamask Account Private Key(Not the key phrase).
 For this tutorial we will be using Polygon Mumbai Testnet.
 Make sure you have some testnet funds in your account.
 
@@ -96,6 +102,7 @@ module.exports = {
   },
 };
 ```
+Here, we merely initialise a basic boilerplate that hardhat may utilise to get the parameters needed to deploy our smart contract.
 
 ---
 
@@ -103,11 +110,13 @@ module.exports = {
 
 Open the `Contracts` Folder and create a new file called `ERC20UpgradeableV1.sol`.
 
+This will be out first Version of Smart Contract.
+
 First we will make a Upgradable ERC-20 Contract using [OpenZeppelin Contract Wizard](https://docs.openzeppelin.com/contracts/4.x/wizard) using the following configuration.
 
 <br>
 
-![Contract Wizard](assets/1.png)
+![Contract Wizard](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/k7b59b17ef2mm34mojqk.png)
 
 Here is a sample code for a upgradable contract
 
@@ -188,17 +197,19 @@ main();
 
 now run the script with the following command
 
-```
+```bash
 npx hardhat run scripts/deploy.js --network mumbai
 ```
 
 The output should be something like this
 
-```
+```bash
 Compiled 11 Solidity files successfully
 Deploying ERC20UpgradableV1...
 ERC20UpgradableV1 deployed to: 0xC81cBaB47B1e6D6d20d4742721e29f22C5835dcB
 ```
+
+Take note of the deployed contract address, it will be useful for testing our smart contract.
 
 ---
 
@@ -206,27 +217,37 @@ ERC20UpgradableV1 deployed to: 0xC81cBaB47B1e6D6d20d4742721e29f22C5835dcB
 
 Now we have to test our smart contract so in terminal run
 
-```
+```bash
 npx hardhat console --network mumbai
 ```
+The aforementioned command will log us into the Polygon Mumbai Blockchain hardhat console where we may communicate with other contracts that have been set up on the Mumbai Blockchain.
 
-```
+Let's now use the following command to initialise a new variable with our `ERC20UpgradableV1` contract:
+
+```js
 const Contract = await ethers.getContractFactory('ERC20UpgradableV1');
 ```
+We now connect the deployed contract to the initialised variable mentioned earlier. The deployed contract address is completed in step 4 and is what you will require.
 
-```
+```js
 const contract = await Contract.attach('0xC81cBaB47B1e6D6d20d4742721e29f22C5835dcB');
 ```
 
 The above two commands get the contract and connect to it
 
-```
+We will issue 100 tokens to a recipient, in my example `0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1`.
+
+The ethers utils library assists us in parsing integers into ether tokens, therefore we used `ethers.utils.parseEther("100.0")` instead of just `100` because `100` provides us tokens in _wei_ that are 100 * 10<sup>-18</sup>.
+
+```js
 await contract.mint('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1',ethers.utils.parseEther("100.0"));
 ```
 
 The above command will mint 100 Tokens to `0xBF4...3e1`
 
-![Balance](assets/2.png)
+You can checck your metamask wallet to see if the token have arrived. It may take 2-5 mins for the tokens to arrive.
+
+![Balance](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/o99vsxshrdqav2l8x9eb.png)
 
 ---
 
@@ -295,6 +316,12 @@ contract ERC20UpgradableV2 is Initializable, ERC20Upgradeable, ERC20BurnableUpgr
 }
 ```
 
+Here, we've built a straightforward mapping that associates user addresses with a boolean value that denotes whether they're on a whitelist or not.
+
+Additionally, we developed the two functions `verifyUser` and `addUser`. `addUser` maps the user address to a boolean value `true`. `verifyUser` returns `true` if the mapping for the user address contains `true` and returns `false` if it does not.
+
+We utilise the `verifyUser` Function in our `mint` function to check whether the user has a whitelist or not; if not, we receive an error and return; otherwise, we mint `100` tokens to the provided address.
+
 ---
 
 ### **Step 7: Upgrading the Contract**
@@ -321,13 +348,13 @@ main();
 
 Run this file with the following command
 
-```
+```bash
 npx hardhat run scripts/upgrade.js --network mumbai
 ```
 
 You should get the following output
 
-```
+```bash
 Upgrading ERC20UpgradableV1...
 Upgraded Successfully
 ```
@@ -338,17 +365,17 @@ Let's do some tests now that the Contract has successfully been upgraded and whi
 
 ### **Step 8: Running Tests for Upgraded Contract**
 
-Now we have to test our smart contract so in terminal run
+We must now connect to the Hardhat Mumbai console, initialise our smart contract, and attach the contract address before we can test it.
 
-```
+```bash
 npx hardhat console --network mumbai
 ```
 
-```
+```js
 const Contract = await ethers.getContractFactory('ERC20UpgradableV2');
 ```
 
-```
+```js
 const contract = await Contract.attach('0xC81cBaB47B1e6D6d20d4742721e29f22C5835dcB');
 ```
 
@@ -356,7 +383,7 @@ The above two commands get the contract and connect to it
 
 Now let's check if we are whitelisted or not
 
-```
+```js
 await contract.verifyUser('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1');
 ```
 
@@ -364,13 +391,13 @@ The result should be `false`
 
 Let's try to mint tokens without having a whitelist and see if we get an error or not
 
-```
+```js
 await contract.mint('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1',ethers.utils.parseEther("100.0"));
 ```
 
 We get the following error
 
-```
+```js
 Error: cannot estimate gas; transaction may fail or may require manual gas limit
 ```
 
@@ -378,22 +405,24 @@ which indicates that the V2 contract handles execution, and because we lack whit
 
 Let's now give ourselves whitelist access and then try to mint tokens.
 
-```
+```js
 await contract.addUser('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1');
 ```
 
 Now wait about 30 seconds till the transaction gets hashed and then again verify that the address has whitelist access.
 
-```
+```js
 await contract.verifyUser('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1');
 ```
 
 This time we should get `true` and now we can mint tokens
 
-```
+```js
 await contract.mint('0xBF4979305B43B0eB5Bb6a5C67ffB89408803d3e1',ethers.utils.parseEther("100.0"));
 ```
 
-## ![Balance](assets/3.png)
+![Balance](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/pfzg5f8m05oxcb28caxo.png)
 
 ---
+
+This explains how to use the OpenZeppelin Upgradable Smart Contract Library to upgrade contracts to the same contract address in order to fix errors and add new features to an already-deployed smart contract.
